@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  phone         String?
+  avatar        String?
+  role          String    @default("user") // user, agent, admin
+  bio           String?
+  city          String?
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+  emailVerified Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  properties    Property[]
+  favorites     Favorite[]
+  sentMessages     Message[]   @relation("SentMessages")
+  receivedMessages Message[]   @relation("ReceivedMessages")
+  notifications    Notification[]
+  reviews          Review[]     @relation("ReviewAuthor")
+  receivedReviews  Review[]     @relation("ReviewTarget")
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  price       Float
+  currency    String   @default("TRY")
+  type        String   // satilik, kiralik
+  category    String   // konut, arsa, arazi, dukkan, ofis, villa, daire
+  status      String   @default("active") // active, sold, rented, inactive
+
+  // Location
+  city        String
+  district    String
+  neighborhood String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+
+  // Details
+  area        Float?   // m2
+  rooms       String?  // 1+1, 2+1, 3+1, etc
+  bathrooms   Int?
+  floor       Int?
+  totalFloors Int?
+  buildingAge Int?
+  heating     String?  // dogalgaz, kombi, soba, merkezi
+  furnished   Boolean  @default(false)
+  parking     Boolean  @default(false)
+  elevator    Boolean  @default(false)
+  balcony     Boolean  @default(false)
+  garden      Boolean  @default(false)
+  pool        Boolean  @default(false)
+  security    Boolean  @default(false)
+
+  views       Int      @default(0)
+  featured    Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  images      PropertyImage[]
+  favorites   Favorite[]
+  messages    Message[]
+  reviews     Review[]
+
+  @@index([type])
+  @@index([category])
+  @@index([city])
+  @@index([price])
+  @@index([userId])
+}
+
+model PropertyImage {
+  id         String   @id @default(cuid())
+  url        String
+  isVideo    Boolean  @default(false)
+  order      Int      @default(0)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([propertyId])
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  userId     String
+  propertyId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  content    String
+  read       Boolean  @default(false)
+  senderId   String
+  receiverId String
+  propertyId String?
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   User     @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([propertyId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // message, favorite, property_update, system
+  title     String
+  content   String
+  read      Boolean  @default(false)
+  link      String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model SiteSettings {
+  id              String   @id @default("default")
+  siteName        String   @default("EmlakPro")
+  siteDescription String   @default("Turkiye'nin en modern emlak platformu")
+  logoUrl         String?
+  faviconUrl      String?
+  primaryColor    String   @default("#2563eb")
+  secondaryColor  String   @default("#4f46e5")
+  accentColor     String   @default("#06b6d4")
+  headerBg        String   @default("#ffffff")
+  footerBg        String   @default("#1f2937")
+  fontFamily      String   @default("Geist")
+  whatsappNumber  String   @default("905478966096")
+  whatsappMessage String   @default("Merhaba, EmlakPro hakkinda bilgi almak istiyorum.")
+  whatsappEnabled Boolean  @default(true)
+  contactEmail    String   @default("info@emlakpro.com")
+  contactPhone    String   @default("0212 000 00 00")
+  contactAddress  String   @default("Istanbul, Turkiye")
+  footerText      String   @default("EmlakPro - Tum haklari saklidir.")
+  metaKeywords    String   @default("emlak, satilik, kiralik, daire, villa, arsa")
+  socialFacebook  String?
+  socialTwitter   String?
+  socialInstagram String?
+  socialYoutube   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Advertisement {
+  id          String   @id @default(cuid())
+  title       String
+  imageUrl    String
+  linkUrl     String?
+  position    String   // header, sidebar, footer, between-listings, popup
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  clicks      Int      @default(0)
+  views       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CustomPage {
+  id          String   @id @default(cuid())
+  title       String
+  slug        String   @unique
+  content     String
+  isPublished Boolean  @default(true)
+  order       Int      @default(0)
+  showInNav   Boolean  @default(false)
+  showInFooter Boolean @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?
+  authorId   String
+  targetId   String
+  propertyId String?
+  author     User     @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  target     User     @relation("ReviewTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  property   Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([authorId])
+  @@index([targetId])
+}
