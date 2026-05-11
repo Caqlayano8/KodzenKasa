@@ -1,4 +1,4 @@
-import type { PortfolioAsset, TradeHistory } from "./types";
+import type { Portfolio, PortfolioAsset, TradeHistory } from "./types";
 
 const STORAGE_KEYS = {
   PORTFOLIO: "kodzen_portfolio",

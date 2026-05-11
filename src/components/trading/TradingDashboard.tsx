@@ -7,6 +7,7 @@ import { AssetTable } from "./AssetTable";
 import { AIAnalysisPanel } from "./AIAnalysisPanel";
 import { TradePanel } from "./TradePanel";
 import { PortfolioPanel } from "./PortfolioPanel";
+import { AutoTrader } from "./AutoTrader";
 
 function usePriceFetcher() {
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -69,6 +70,7 @@ function usePriceFetcher() {
 export function TradingDashboard() {
   const { assets, portfolio, loading, lastUpdate, refreshPortfolio, manualRefresh } = usePriceFetcher();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const [activeTab, setActiveTab] = useState<"market" | "auto" | "portfolio">("auto");
 
   if (loading) {
     return (
@@ -127,34 +129,60 @@ export function TradingDashboard() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {portfolio && <PortfolioPanel portfolio={portfolio} onRefresh={refreshPortfolio} />}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <AssetTable
-              assets={assets}
-              onSelectAsset={setSelectedAsset}
-              selectedAssetId={selectedAsset?.id}
-            />
-          </div>
-          <div className="space-y-6">
-            {selectedAsset ? (
-              <>
-                <TradePanel asset={selectedAsset} onTradeComplete={refreshPortfolio} />
-                <AIAnalysisPanel asset={selectedAsset} />
-              </>
-            ) : (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
-                <div className="text-6xl mb-4">👈</div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Varlık Seçin</h3>
-                <p className="text-gray-500 text-sm">
-                  Piyasalar tablosundan bir varlık seçerek yapay zeka analizini görüntüleyin ve alım-satım yapın.
-                </p>
-              </div>
-            )}
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex gap-1 mb-4 bg-white/10 rounded-xl p-1">
+          {(["auto", "market", "portfolio"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === tab
+                  ? "bg-white text-gray-900 shadow"
+                  : "text-blue-200 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {tab === "auto" ? "🤖 Otomatik Bot" : tab === "market" ? "📊 Piyasalar" : "💼 Portföy"}
+            </button>
+          ))}
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6 space-y-6">
+        {activeTab === "auto" && (
+          <AutoTrader assets={assets} onTradeComplete={() => { refreshPortfolio(); manualRefresh(); }} />
+        )}
+
+        {activeTab === "market" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <AssetTable
+                assets={assets}
+                onSelectAsset={setSelectedAsset}
+                selectedAssetId={selectedAsset?.id}
+              />
+            </div>
+            <div className="space-y-6">
+              {selectedAsset ? (
+                <>
+                  <TradePanel asset={selectedAsset} onTradeComplete={refreshPortfolio} />
+                  <AIAnalysisPanel asset={selectedAsset} />
+                </>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center">
+                  <div className="text-6xl mb-4">👈</div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Varlık Seçin</h3>
+                  <p className="text-gray-500 text-sm">
+                    Piyasalar tablosundan bir varlık seçerek yapay zeka analizini görüntüleyin ve alım-satım yapın.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "portfolio" && portfolio && (
+          <PortfolioPanel portfolio={portfolio} onRefresh={refreshPortfolio} />
+        )}
       </div>
     </div>
   );
