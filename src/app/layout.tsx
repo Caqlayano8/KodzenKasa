@@ -1,0 +1,27 @@
+import type { Metadata } from "next";
+import { Geist } from "next/font/google";
+import "./globals.css";
+
+const geist = Geist({
+  variable: "--font-geist",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "KodzenKasa - Akıllı Yatırım Platformu",
+  description: "Kripto, altın, gümüş, döviz al-sat platformu. Yapay zeka destekli otomatik trading.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="tr" className={`${geist.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col bg-gray-900 font-[family-name:var(--font-geist)]">
+        {children}
+      </body>
+    </html>
+  );
+}
