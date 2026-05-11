@@ -1,4 +1,5 @@
 import type { Asset, PriceHistory } from "./types";
+import { isExchangeConfigured, fetchLiveTickers } from "./exchange";
 
 const CRYPTO_API = "https://api.coingecko.com/api/v3";
 
@@ -32,6 +33,19 @@ const ASSET_ICONS: Record<string, string> = {
   USD: "$",
   EUR: "€",
   GBP: "£",
+};
+
+const CRYPTO_NAMES: Record<string, { id: string; name: string }> = {
+  BTC: { id: "bitcoin", name: "Bitcoin" },
+  ETH: { id: "ethereum", name: "Ethereum" },
+  BNB: { id: "binancecoin", name: "BNB" },
+  SOL: { id: "solana", name: "Solana" },
+  XRP: { id: "ripple", name: "XRP" },
+  ADA: { id: "cardano", name: "Cardano" },
+  DOGE: { id: "dogecoin", name: "Dogecoin" },
+  DOT: { id: "polkadot", name: "Polkadot" },
+  AVAX: { id: "avalanche", name: "Avalanche" },
+  MATIC: { id: "polygon", name: "Polygon" },
 };
 
 const TRY_RATE = 38.5;
@@ -74,7 +88,40 @@ function generatePriceHistory(basePrice: number, days: number, volatility: numbe
   return history;
 }
 
+async function fetchBtcTurkCryptoPrices(): Promise<Asset[]> {
+  const tickers = await fetchLiveTickers();
+  if (tickers.length === 0) return [];
+
+  return tickers.map((t) => {
+    const info = CRYPTO_NAMES[t.symbol] ?? { id: t.symbol.toLowerCase(), name: t.symbol };
+    return {
+      id: info.id,
+      symbol: t.symbol,
+      name: info.name,
+      category: "crypto" as const,
+      price: t.last,
+      priceChange24h: t.change,
+      priceChangePercent24h: t.changePercent,
+      high24h: t.high,
+      low24h: t.low,
+      volume24h: t.volume * t.last,
+      marketCap: undefined,
+      icon: ASSET_ICONS[t.symbol] ?? "🪙",
+      sparkline: generateRealisticSparkline(t.last, 0.03),
+    };
+  });
+}
+
 export async function fetchCryptoPrices(): Promise<Asset[]> {
+  if (isExchangeConfigured()) {
+    try {
+      const btcTurkPrices = await fetchBtcTurkCryptoPrices();
+      if (btcTurkPrices.length > 0) return btcTurkPrices;
+    } catch {
+      // fall through to CoinGecko/simulation
+    }
+  }
+
   try {
     const response = await fetch(
       `${CRYPTO_API}/coins/markets?vs_currency=try&order=market_cap_desc&per_page=10&page=1&sparkline=true`,

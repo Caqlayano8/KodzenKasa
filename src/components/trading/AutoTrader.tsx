@@ -11,6 +11,13 @@ import {
 } from "@/lib/trading/auto-trader";
 import type { AutoTraderConfig, AutoTradeLog } from "@/lib/trading/auto-trader";
 
+interface ExchangeStatus {
+  connected: boolean;
+  exchange: string;
+  mode: "live" | "simulation";
+  error?: string;
+}
+
 interface AutoTraderProps {
   assets: Asset[];
   onTradeComplete: () => void;
@@ -43,10 +50,18 @@ export function AutoTrader({ assets, onTradeComplete }: AutoTraderProps) {
       sellCount: sellTrades.length,
     };
   });
+  const [exchangeStatus, setExchangeStatus] = useState<ExchangeStatus | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const runningRef = useRef(false);
   const startTimeRef = useRef(0);
+
+  useEffect(() => {
+    fetch("/api/trading/exchange/status")
+      .then((r) => r.json())
+      .then((data: ExchangeStatus) => setExchangeStatus(data))
+      .catch(() => setExchangeStatus({ connected: false, exchange: "BtcTurk", mode: "simulation" }));
+  }, []);
 
   const updateStats = useCallback(() => {
     const allLogs = getAutoTradeLogs();
@@ -178,6 +193,38 @@ export function AutoTrader({ assets, onTradeComplete }: AutoTraderProps) {
 
   return (
     <div className="space-y-4">
+      {/* Exchange Status Banner */}
+      {exchangeStatus && (
+        <div className={`rounded-2xl p-4 flex items-center justify-between ${
+          exchangeStatus.connected
+            ? "bg-green-50 border border-green-200"
+            : "bg-yellow-50 border border-yellow-200"
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${
+              exchangeStatus.connected ? "bg-green-500 animate-pulse" : "bg-yellow-500"
+            }`} />
+            <div>
+              <span className="font-bold text-sm text-gray-900">
+                {exchangeStatus.connected ? "🔗 BtcTurk Bağlı" : "📡 Simülasyon Modu"}
+              </span>
+              <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                exchangeStatus.connected
+                  ? "bg-green-500 text-white"
+                  : "bg-yellow-500 text-white"
+              }`}>
+                {exchangeStatus.mode === "live" ? "CANLI" : "SİMÜLASYON"}
+              </span>
+            </div>
+          </div>
+          {!exchangeStatus.connected && (
+            <p className="text-xs text-yellow-700">
+              Gerçek işlem için .env dosyasına BtcTurk API anahtarlarını ekleyin
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Bot Control Panel */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">

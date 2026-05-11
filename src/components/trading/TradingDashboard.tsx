@@ -71,6 +71,14 @@ export function TradingDashboard() {
   const { assets, portfolio, loading, lastUpdate, refreshPortfolio, manualRefresh } = usePriceFetcher();
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const [activeTab, setActiveTab] = useState<"market" | "auto" | "portfolio">("auto");
+  const [exchangeMode, setExchangeMode] = useState<string>("...");
+
+  useEffect(() => {
+    fetch("/api/trading/exchange/status")
+      .then((r) => r.json())
+      .then((data) => setExchangeMode(data.connected ? "CANLI - BtcTurk" : "Simülasyon"))
+      .catch(() => setExchangeMode("Simülasyon"));
+  }, []);
 
   if (loading) {
     return (
@@ -93,8 +101,13 @@ export function TradingDashboard() {
                 <span className="text-3xl">📊</span>
                 KodzenKasa Trading
               </h1>
-              <p className="text-blue-200 text-sm mt-1">
+              <p className="text-blue-200 text-sm mt-1 flex items-center gap-2">
                 Yapay Zeka Destekli Akıllı Yatırım Platformu
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                  exchangeMode.includes("CANLI") ? "bg-green-500 text-white" : "bg-yellow-500 text-white"
+                }`}>
+                  {exchangeMode}
+                </span>
               </p>
             </div>
             <div className="text-right">
